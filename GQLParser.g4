@@ -630,8 +630,9 @@ whenThenLinearQueryBranch:
 elseLinearQueryBranch: ELSE linearQueryExpression;
 // Session 15.3 <composite query expression>
 compositeQueryExpression:
-	linearQueryExpression
-	| compositeQueryExpression queryConjunction linearQueryExpression;
+	linearQueryExpression (
+		queryConjunction linearQueryExpression
+	)*;
 queryConjunction: setOperator | OTHERWISE;
 setOperator:
 	(UNION | EXCEPT | INTERSECT) setOperatorQuantifier?;
@@ -787,8 +788,7 @@ pathMultisetAlternation:
 		P_MULTISET_ALTERNATION pathTerm
 	)*;
 pathPatternUnion: pathTerm P_V_BAR pathTerm (P_V_BAR pathTerm)*;
-pathTerm: pathFactor | pathConcatenation;
-pathConcatenation: pathTerm pathFactor;
+pathTerm: pathFactor+;
 pathFactor:
 	pathPrimary
 	| quantifiedPathPrimary
@@ -898,10 +898,8 @@ simplePathPatternList:
 simplePathPattern:
 	pathPattern; // NOTE: Predicative production rule.
 //Section 16.11<label expression>
-labelExpression: labelTerm | labelDisjunction;
-labelDisjunction: labelExpression P_V_BAR labelTerm;
-labelTerm: labelFactor | labelConjunction;
-labelConjunction: labelTerm P_AMPERSAND labelFactor;
+labelExpression: labelTerm ( P_V_BAR labelTerm)*;
+labelTerm: labelFactor (P_AMPERSAND labelFactor)*;
 labelFactor: labelPrimary | labelNegation;
 labelNegation: P_EXCLAMATION labelPrimary;
 labelPrimary:
@@ -942,13 +940,9 @@ simplifiedContents:
 simplifiedPathUnion: simplifiedTerm (P_V_BAR simplifiedTerm)+;
 simplifiedMultisetAlternation:
 	simplifiedTerm (P_MULTISET_ALTERNATION simplifiedTerm)+;
-simplifiedTerm: simplifiedFactorLow | simplifiedConcatenation;
-simplifiedConcatenation: simplifiedTerm simplifiedFactorLow;
+simplifiedTerm: simplifiedFactorLow+;
 simplifiedFactorLow:
-	simplifiedFactorHigh
-	| simplifiedConjunction;
-simplifiedConjunction:
-	simplifiedFactorLow P_AMPERSAND simplifiedFactorHigh;
+	simplifiedFactorHigh (P_AMPERSAND simplifiedFactorHigh)*;
 simplifiedFactorHigh:
 	simplifiedTertiary
 	| simplifiedQuantified
@@ -1446,16 +1440,14 @@ outDegreeFunction: OUT_DEGREE '(' bindingVariable ')';
 stringValueExpression:
 	characterValueExpression
 	| binaryValueExpression;
-characterValueExpression: characterFactor | concatenation;
-concatenation:
-	characterValueExpression P_CONCATENATION characterFactor;
+characterValueExpression:
+	characterFactor (P_CONCATENATION characterFactor)*;
 characterFactor: characterPrimary;
 characterPrimary: valueExpressionPrimary | stringValueFunction;
-binaryValueExpression: binaryConcatenation | binaryFactor;
+binaryValueExpression:
+	binaryFactor (P_CONCATENATION binaryFactor)*;
 binaryFactor: binaryPrimary;
 binaryPrimary: valueExpressionPrimary | stringValueFunction;
-binaryConcatenation:
-	binaryValueExpression P_CONCATENATION binaryFactor;
 // Section 20.8 <string value function>
 stringValueFunction:
 	characterValueFunction
@@ -1579,9 +1571,7 @@ collectionValueConstructor:
 	| mapValueConstructor
 	| recordValueConstructor;
 // Section 20.16<list value expression>
-listValueExpression: listConcatenation | listPrimary;
-listConcatenation:
-	listValueExpression P_CONCATENATION listPrimary;
+listValueExpression: listPrimary (P_CONCATENATION listPrimary)*;
 listPrimary: listValueFunction | valueExpressionPrimary;
 
 // Section 20.17<list value function>
@@ -1592,7 +1582,7 @@ trimListFunction:
 // Section 20.18<list value constructor>
 listValueConstructor: listValueConstructorByEnumeration;
 listValueConstructorByEnumeration:
-	listValueTypeName '[' listElementList ']';
+	(ARRAY|LIST) '[' listElementList ']';
 listElementList: listElement (P_COMMA listElement)*;
 listElement: valueExpression;
 // Section 20.19<multiset value expression>
@@ -1748,15 +1738,17 @@ recordLiteral: recordValueConstructorByEnumeration;
 
 // Section 21.2 <value type>
 valueType:
-	ANY
-	| predefinedType
-	| graphElementType
-	| collectionType
-	| mapValueType
-	| recordValueType
-	| graphTypeExpression
-	| bindingTableTypeExpression
-	| NOTHING;
+	(
+		ANY
+		| predefinedType
+		| graphElementType
+		| mapValueType
+		| recordValueType
+		| graphTypeExpression
+		| bindingTableTypeExpression
+		| NOTHING
+	) collectionType*;
+collectionType: ARRAY | LIST | SET | MULTISET | ORDERED SET;
 ofValueType: ofTypePrefix? valueType;
 ofTypePrefix: P_COLON P_COLON | OF;
 predefinedType:
@@ -1786,16 +1778,6 @@ temporalType:
 	| LOCALTIME
 	| DURATION;
 graphElementType: NODE | VERTEX | EDGE | RELATIONSHIP | PATH;
-collectionType:
-	listValueType
-	| setValueType
-	| multisetValueType
-	| orderedSetValueType;
-listValueType: valueType listValueTypeName;
-listValueTypeName: LIST | ARRAY;
-multisetValueType: valueType MULTISET;
-setValueType: valueType SET;
-orderedSetValueType: valueType ORDERED SET;
 mapValueType: MAP '<' mapKeyType P_COMMA valueType '>';
 mapKeyType: predefinedType;
 recordValueType: RECORD? '{' fieldTypeList? '}';
