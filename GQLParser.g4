@@ -8,7 +8,7 @@ root: requests? EOF;
 
 requests: (gqlRequest P_SEMI | emptyRequest)* (
 		gqlRequest P_SEMI?
-	)?
+	)
 	| emptyRequest;
 
 emptyRequest: P_SEMI;
@@ -81,9 +81,8 @@ endTransactionCommand: commitCommand | rollbackCommand;
 //Section 8.3 <transactin characteristics>
 transactionCharacteristics:
 	transactionMode (P_COMMA transactionMode)*;
-transactionMode:
-	transactionAccessMode
-	| implementationDefinedAccessMode;
+transactionMode: transactionAccessMode;
+//| implementationDefinedAccessMode;
 transactionAccessMode: READ ONLY | READ WRITE;
 implementationDefinedAccessMode:; //TODO: Syntax Rules
 // Section 8.4 <rollback command>
@@ -117,7 +116,7 @@ functionSpecification:
 // Section 9.4 <procedure body>
 procedureBody: definitionBlock? statementBlock;
 definitionBlock:
-	staticVariableDefinition* bindingVariableDefinition*;
+	staticVariableDefinition+ bindingVariableDefinition+;
 statementBlock: statement (THEN statement)*;
 
 /* Section 10 Variable and parameter declarations and definitions */
@@ -1012,7 +1011,7 @@ groupingElement: bindingVariable;
 emptyGroupingSet: '(' ')';
 
 //Section 16.19<ordering and paging clauses>
-orderingAndPagingClauses: singleOrderingAndPagingClause*;
+orderingAndPagingClauses: singleOrderingAndPagingClause+;
 singleOrderingAndPagingClause:
 	orderByClause
 	| offsetClause
@@ -1248,12 +1247,12 @@ searchCondition: booleanValueExpression;
 predicate:
 	comparisonPredicate
 	| existsPredicate
-	| betweenPredicate
+	//| betweenPredicate
 	| nullPredicate
 	| normalizedPredicate;
 //Section 19.3 <comparison predicate>
 comparisonPredicate:
-	nonParenthesizedValueExpressionPrimary compOp nonParenthesizedValueExpressionPrimary;
+	valueExpressionPrimary compOp valueExpressionPrimary;
 compOp: (
 		P_EQUAL
 		| P_NOT_EQUAL
@@ -1350,7 +1349,7 @@ truthValue: TRUE | FALSE | UNKNOWN | NULL;
 booleanPrimary: predicate | booleanPredicand;
 booleanPredicand:
 	parenthesizedBooleanValueExpression
-	| nonParenthesizedValueExpressionPrimary;
+	| valueExpressionPrimary;
 parenthesizedBooleanValueExpression:
 	'(' booleanValueExpression ')';
 // Section 20.4 <numeric value expression>
@@ -1363,19 +1362,18 @@ factor: (P_MINUS | P_PLUS)? numericPrimary;
 numericPrimary: valueExpressionPrimary | numericValueFunction;
 // Section 20.5 <value expression primary>
 valueExpressionPrimary:
-	parenthesizedValueExpression
-	| nonParenthesizedValueExpressionPrimary;
-parenthesizedValueExpression: '(' valueExpression ')';
-nonParenthesizedValueExpressionPrimary:
-	propertyReference
-	| bindingVariable
-	| parameterValueSpecification
-	| unsignedValueSpecification
-	| aggregateFunction
-	| collectionValueConstructor
-	| valueQueryExpression
-	| caseExpression
-	| castSpecification;
+	(
+		'(' valueExpression ')'
+		| graphElementFunction P_DOT propertyName
+		| bindingVariable
+		| parameterValueSpecification
+		| unsignedValueSpecification
+		| aggregateFunction
+		| collectionValueConstructor
+		| valueQueryExpression
+		| caseExpression
+		//| castSpecification
+	) (P_DOT propertyName)*;
 
 // Section 20.6 <numeric value function>
 numericValueFunction:
@@ -1554,10 +1552,10 @@ durationFunctionParameters:
 durationAbsoluteValueFunction:
 	ABS '(' durationValueExpression ')';
 // Section 20.13<graph element value expression>
-graphElementValueExpression: graphElementPrimary;
-graphElementPrimary:
-	graphElementFunction
-	| valueExpressionPrimary;
+graphElementValueExpression: (
+		graphElementFunction
+		| valueExpressionPrimary
+	);
 // Section 20.14<graph element function>
 graphElementFunction: startNodeFunction | endNodeFunction;
 startNodeFunction: START_NODE '(' bindingVariable ')';
@@ -1582,7 +1580,7 @@ trimListFunction:
 // Section 20.18<list value constructor>
 listValueConstructor: listValueConstructorByEnumeration;
 listValueConstructorByEnumeration:
-	(ARRAY|LIST) '[' listElementList ']';
+	(ARRAY | LIST) '[' listElementList ']';
 listElementList: listElement (P_COMMA listElement)*;
 listElement: valueExpression;
 // Section 20.19<multiset value expression>
@@ -1639,7 +1637,6 @@ fieldList: field (P_COMMA field)*;
 field: fieldName fieldValue;
 fieldValue: valueExpression;
 // Section 20.26<property reference>
-propertyReference: graphElementPrimary P_DOT propertyName;
 
 // Section 20.27<value query expression>
 valueQueryExpression: VALUE nestedQuerySpecification;
@@ -1655,11 +1652,11 @@ searchedCase: CASE searchedWhenClause* elseClause? END;
 simpleWhenClause: WHEN whenOperandList THEN result;
 searchedWhenClause: WHEN searchCondition THEN result;
 elseClause: ELSE result;
-caseOperand: nonParenthesizedValueExpressionPrimary;
+caseOperand: valueExpressionPrimary;
 whenOperandList: whenOperand (P_COMMA whenOperand)*;
 whenOperand:
-	nonParenthesizedValueExpressionPrimary
-	| compOp nonParenthesizedValueExpressionPrimary
+	valueExpressionPrimary
+	| compOp valueExpressionPrimary
 	| IS NOT? NULL;
 result: resultExpression | NULL;
 resultExpression: valueExpression;
