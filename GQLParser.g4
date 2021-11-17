@@ -4,78 +4,22 @@ options {
 	tokenVocab = GQLLexer;
 }
 
-root: statements? EOF;
+root: requests? EOF;
 
-statements: (statement SEMI | emptyStatement)* (statement SEMI?)?
-	| emptyStatement;
+requests: (gqlRequest P_SEMI | emptyRequest)* (
+		gqlRequest P_SEMI?
+	)?
+	| emptyRequest;
 
-emptyStatement: SEMI;
-
-period: PERIOD;
-
-nodeSynonym: NODE | VERTEX;
-
-minusLeftBracket: MINUS L_BRACKET;
-bracketRightArrow: R_BRACKET MINUS '>';
-leftArrowBracket: '<' MINUS L_BRACKET;
-rightBracketMinus: R_BRACKET MINUS;
-tildeLeftBracket: '~' L_BRACKET;
-leftArrowTildeBracket: '<' '~' L_BRACKET;
-rightBracketTilde: R_BRACKET '~';
-bracketTildeRightArrow: R_BRACKET '~' '>';
-
-rightArrow: MINUS '>';
-leftArrowTilde: '<' '~';
-tildeRightArrow: '~' '>';
-leftMinusRight: '<' '-' '>';
-minusSign: '-';
-leftArrow: '<' MINUS;
-tilde: '~';
-edgeSynonym: EDGE | RELATIONSHIP;
-
-valueVariable: bindingVariableName;
-
-startNode:; //TODO(hs.zhang)
-endNode:; //TODO(hs.zhang)
-
-sperator: (',' | ' ')*;
-
-asterisk: '*';
-
-percentileCont:; //TODO(hs.zhang)
-percentileDist:; //TODO(hs.zhang)
-
-comparisonPredicate:
-	nonParenthesizedValueExpressionPrimary compOp nonParenthesizedValueExpressionPrimary;
-
-multisetAlternationOperator: '|+|';
-
-pathConcatenation: pathTerm pathFactor;
-verticalBar: '|';
-
-questionMark: '?';
-
-lowerBound: unsignedInteger;
-upperBound: unsignedInteger;
-
-plusSign: '+';
-
-concatenationOperator: '||';
-
-orderedsetValueExpression: valueExpressionPrimary;
-
-durationString: STRING_LITERAL;
-
-ifNotExists: IF NOT EXISTS;
-ifExists: IF EXISTS;
-
+emptyRequest: P_SEMI;
 /* Section 6 */
 
 // Section 6.1 <GQL-request>
 gqlRequest: requestParameterSet? gqlProgram;
 
 // Sectoin 6.2 request parameter set
-requestParameterSet: requestParameter (',' requestParameter)*;
+requestParameterSet:
+	requestParameter (P_COMMA requestParameter)*;
 
 requestParameter: parameterDefinition;
 // Section 6.3 <GQL-program>
@@ -85,7 +29,7 @@ mainActivity:
 	| sessionActivity? (transactionActivity sessionActivity?)+ sessionCloseCommand?
 	| sessionCloseCommand;
 sessionActivity:
-	sessionClearCommand (sessionParameterCommand?)+
+	sessionClearCommand sessionParameterCommand*
 	| sessionParameterCommand+;
 sessionParameterCommand:
 	sessionSetCommand
@@ -98,11 +42,11 @@ transactionActivity:
 	| endTransactionCommand;
 
 // Section 6.4 <preamble>
-preamble: preambleOption (',' preambleOption)*;
+preamble: preambleOption (P_COMMA preambleOption)*;
 preambleOption:
 	PROFILE
 	| EXPLAIN
-	| preambleOptionIdentifier (EQ literal)?;
+	| preambleOptionIdentifier (P_EQUAL literal)?;
 preambleOptionIdentifier: identifier;
 
 /* Section 7 Session management */
@@ -136,7 +80,7 @@ startTransactionCommand:
 endTransactionCommand: commitCommand | rollbackCommand;
 //Section 8.3 <transactin characteristics>
 transactionCharacteristics:
-	transactionMode (',' transactionMode)*;
+	transactionMode (P_COMMA transactionMode)*;
 transactionMode:
 	transactionAccessMode
 	| implementationDefinedAccessMode;
@@ -179,7 +123,7 @@ statementBlock: statement (THEN statement)*;
 /* Section 10 Variable and parameter declarations and definitions */
 // Section 10.1 Static variable definitions
 staticVariableDefinitionList:
-	staticVariableDefinition (',' staticVariableDefinition)*;
+	staticVariableDefinition (P_COMMA staticVariableDefinition)*;
 staticVariableDefinition:
 	schemaVariableDefinition
 	| graphTypeVariableDefinition
@@ -191,52 +135,54 @@ staticVariableDefinition:
 schemaVariableDefinition:
 	SCHEMA staticVariableName schemaInitializer;
 schemaInitializer:
-	(AS | EQ) schemaReference
-	| COLON catalogSchemaReference;
+	(AS | P_EQUAL) schemaReference
+	| P_COLON catalogSchemaReference;
 // Section 10.3 Graph type variable definition
 graphTypeVariableDefinition:
 	PROPERTY? GRAPH TYPE graphTypeVariable graphTypeInitializer;
 graphTypeVariable: bindingVariableName;
 graphTypeInitializer:
 	asGraphType
-	| COLON catalogGraphTypeReference;
+	| P_COLON catalogGraphTypeReference;
 // Section 10.4 Procedure variable definition
 procedureVariableDefinition:
 	CATALOG? PROCEDURE procedureVariable ofTypeSignature procedureInitializer;
 procedureVariable: staticVariableName;
 procedureInitializer:
-	(AS | EQ) procedureReference
+	(AS | P_EQUAL) procedureReference
 	| AS? nestedProcedureSpecification
-	| COLON catalogProcedureReference;
+	| P_COLON catalogProcedureReference;
 // Section 10.5 Query variable definition
 queryVariableDefinition:
 	QUERY queryVariable ofTypeSignature queryInitializer;
 queryVariable: staticVariableName;
 queryInitializer:
-	(AS | EQ) queryReference
+	(AS | P_EQUAL) queryReference
 	| AS? nestedQuerySpecification
-	| COLON catalogQueryReference;
+	| P_COLON catalogQueryReference;
 // Section 10.6 Functin variable definition
 functionVariableDefinition:
 	FUNCTION functionVariable ofTypeSignature functionInitializer;
 functionVariable: staticVariableName;
 functionInitializer:
-	(AS | EQ) functionReference
+	(AS | P_EQUAL) functionReference
 	| AS? nestedFunctionSpecification
-	| COLON catalogFunctionReference;
+	| P_COLON catalogFunctionReference;
 // Section 10.7 Path pattern variable definition
 pathPatternVariableDefinition:
 	PATH PATTERN pathPatternVariable pathPatternInitializer;
 pathPatternInitializer:
-	(AS | EQ)? pathPatternDefinition
-	| COLON catalogPathPatternReference;
+	(AS | P_EQUAL)? pathPatternDefinition
+	| P_COLON catalogPathPatternReference;
 pathPatternDefinition:
 	COPY OF pathPatternReference
 	| pathPatternExpression;
 pathPatternVariable: staticVariableName;
 // Section 10.8 Binding variable and parameter declarations and definitions 
 compactVariableDeclarationList:
-	compactVariableDeclaration (',' compactVariableDeclaration)*;
+	compactVariableDeclaration (
+		P_COMMA compactVariableDeclaration
+	)*;
 compactVariableDeclaration:
 	bindingVariableDeclaration
 	| valueVariable;
@@ -245,18 +191,18 @@ bindingVariableDeclaration:
 	| bindingTableVariableDeclaration
 	| valueVariableDeclaration;
 compactVariableDefinitionList:
-	compactVariableDefinition (',' compactVariableDefinition)*;
+	compactVariableDefinition (P_COMMA compactVariableDefinition)*;
 compactVariableDefinition:
 	compactValueVariableDefinition
 	| bindingVariableDefinition;
 compactValueVariableDefinitionList:
 	compactValueVariableDefinition (
-		',' compactValueVariableDefinition
+		P_COMMA compactValueVariableDefinition
 	)*;
 compactValueVariableDefinition:
-	valueVariable EQ valueExpression;
+	valueVariable P_EQUAL valueExpression;
 bindingVariableDefinitionList:
-	bindingVariableDefinition (',' bindingVariableDefinition)*;
+	bindingVariableDefinition (P_COMMA bindingVariableDefinition)*;
 bindingVariableDefinition:
 	graphVariableDefinition
 	| bindingTableVariableDefinition
@@ -276,12 +222,12 @@ optionalGraphVariableDefinition: graphVariableDefinition;
 graphVariableDefinition:
 	PROPERTY? GRAPH graphVariable ofGraphType graphInitializer;
 graphParameterDefinition:
-	PROPERTY? GRAPH parameterName ifNotExists? ofGraphType graphInitializer;
+	PROPERTY? GRAPH parameterName IF_NOT_EXISTS? ofGraphType graphInitializer;
 graphVariable: bindingVariableName;
 graphInitializer:
-	(AS | EQ) graphExpression
+	(AS | P_EQUAL) graphExpression
 	| AS? nestedGraphQuerySpecification
-	| COLON catalogGraphTypeReference;
+	| P_COLON catalogGraphTypeReference;
 
 // Section 10.10 Binding table variable and parameter declaration and definition
 bindingTableVariableDeclaration:
@@ -291,23 +237,24 @@ optionalBindingTableVariableDefinition:
 bindingTableVariableDefinition:
 	BINDING? TABLE bindingTableVariable ofBindingTableType bindingTableInitializer;
 bindingTableParameterDefinition:
-	BINDING? TABLE parameter ifNotExists? ofBindingTableType bindingTableInitializer;
+	BINDING? TABLE parameter IF_NOT_EXISTS? ofBindingTableType bindingTableInitializer;
 bindingTableVariable: bindingVariableName;
 bindingTableInitializer:
-	(AS | EQ) bindingTableReference
+	(AS | P_EQUAL) bindingTableReference
 	| AS? nestedQuerySpecification
-	| COLON catalogBindingTableReference;
+	| P_COLON catalogBindingTableReference;
 // Section 10.11 Value variable and parameter declaration and definition
 valueVariableDeclaration: VALUE valueVariable ofValueType;
 optionalValueVariableDefinition: valueVariableDefinition;
 valueVariableDefinition:
 	VALUE valueVariable ofValueType? valueInitializer;
 valueParameterDefinition:
-	VALUE parameter ifNotExists? ofValueType? valueInitializer;
+	VALUE parameter IF_NOT_EXISTS? ofValueType? valueInitializer;
+valueVariable: bindingVariableName;
 valueInitializer:
-	(AS | EQ) valueExpression
+	(AS | P_EQUAL) valueExpression
 	| AS? nestedQuerySpecification
-	| COLON catalogObjectReference;
+	| P_COLON catalogObjectReference;
 
 /* Section 11 Object expressions */
 
@@ -328,7 +275,7 @@ graphTypeExpression:
 	| graphTypeSpecification
 	| graphTypeReference;
 asGraphType:
-	(AS | EQ) graphTypeExpression
+	(AS | P_EQUAL) graphTypeExpression
 	| likeGraphExpressionShorthand
 	| AS? nestedGraphTypeSpecification;
 copyGraphTypeExpression: COPY OF graphTypeReference;
@@ -428,16 +375,16 @@ linearCatalogModifyingStatement:
 // Section 13.2 <create schema statement>
 createSchemaStatement:
 	CREATE (
-		SCHEMA catalogSchemaParentAndName ifNotExists?
+		SCHEMA catalogSchemaParentAndName IF_NOT_EXISTS?
 		| OR REPLACE SCHEMA catalogSchemaParentAndName
 	);
 // Section 13.3 <drop schema statement>
 dropSchemaStatement:
-	DROP SCHEMA catalogSchemaParentAndName ifExists;
+	DROP SCHEMA catalogSchemaParentAndName IF_EXISTS;
 // Section 13.4 <create graph statement>
 createGraphStatement:
 	CREATE (
-		PROPERTY? GRAPH catalogGraphParentAndName ifNotExists?
+		PROPERTY? GRAPH catalogGraphParentAndName IF_NOT_EXISTS?
 		| OR REPLACE PROPERTY? GRAPH catalogGraphParentAndName
 	) ofGraphType? graphSource?;
 graphSource: AS copyGraphExpression;
@@ -453,11 +400,11 @@ nestedAmbientDataModifyingProcedureSpecification:
 	nestedDataModifyingProcedureSpecification;
 // Section 13.6 <drop graph statement>
 dropGraphStatement:
-	DROP GRAPH catalogGraphParentAndName ifExists?;
+	DROP GRAPH catalogGraphParentAndName IF_EXISTS?;
 // Section 13.7 <create graph type statement>
 createGraphTypeStatement:
 	CREATE (
-		PROPERTY? GRAPH TYPE catalogGraphTypeParentAndName ifNotExists?
+		PROPERTY? GRAPH TYPE catalogGraphTypeParentAndName IF_NOT_EXISTS?
 		| OR REPLACE PROPERTY? GRAPH TYPE catalogGraphTypeParentAndName
 	) graphTypeInitializer;
 // Section 13.8 <graph type specification>
@@ -467,12 +414,12 @@ nestedGraphTypeSpecification:
 	'(' graphTypeSpecificationBody ')';
 graphTypeSpecificationBody: elementTypeDefinitionList;
 elementTypeDefinitionList:
-	elementTypeDefinition (',' elementTypeDefinition)*;
+	elementTypeDefinition (P_COMMA elementTypeDefinition)*;
 elementTypeDefinition: nodeTypeDefinition | edgeTypeDefinition;
 // Section 13.9 <node type definition>
 nodeTypeDefinition:
 	'(' nodeTypeName? nodeTypeFiller? ')'
-	| nodeSynonym TYPE? nodeTypeName nodeTypeFiller;
+	| NODE_SYNONYM TYPE? nodeTypeName nodeTypeFiller;
 nodeTypeName:
 	elementTypeName; // NOTE: Predicative production rule.
 nodeTypeFiller:
@@ -487,7 +434,7 @@ nodeTypePropertyTypeSetDefinition:
 edgeTypeDefinition:
 	fullEdgeTypePattern
 	| abbreviatedEdgeTypePattern
-	| edgeKind edgeSynonym TYPE? edgeTypeName edgeTypeFiller endPointDefinition;
+	| edgeKind EDGE_SYNONYM TYPE? edgeTypeName edgeTypeFiller endPointDefinition;
 edgeTypeName:
 	elementTypeName; // NOTE: Predicative production rule.
 edgeTypeFiller:
@@ -509,22 +456,22 @@ fullEdgeTypePatternPointingLeft:
 fullEdgeTypePatternAndDirection:
 	sourceNodeTypeReference arcTypeAnyDirection destinationNodeTypeReference;
 arcTypePointingRight:
-	minusLeftBracket arcTypeFiller bracketRightArrow;
+	MINUS_LEFT_BRACKET arcTypeFiller BRACKET_RIGHT_ARROW;
 arcTypePointingLeft:
-	leftArrowBracket arcTypeFiller rightBracketMinus;
+	LEFT_ARROW_BRACKET arcTypeFiller RIGHT_BRACKET_MINUS;
 arcTypeAnyDirection:
-	tildeLeftBracket arcTypeFiller rightBracketTilde;
+	TILDE_LEFT_BRACKET arcTypeFiller RIGHT_BRACKET_TILDE;
 arcTypeFiller: edgeTypeName? edgeTypeFiller?;
 abbreviatedEdgeTypePattern:
 	abbreviatedEdgeTypePatternPointingRight
 	| abbreviatedEdgeTypePatternPointingLeft
 	| abbreviatedEdgeTypePatternAnyDirection;
 abbreviatedEdgeTypePatternPointingRight:
-	sourceNodeTypeReference rightArrow destinationNodeTypeReference;
+	sourceNodeTypeReference RIGHT_ARROW destinationNodeTypeReference;
 abbreviatedEdgeTypePatternPointingLeft:
-	destinationNodeTypeReference leftArrow sourceNodeTypeReference;
+	destinationNodeTypeReference LEFT_ARROW sourceNodeTypeReference;
 abbreviatedEdgeTypePatternAnyDirection:
-	sourceNodeTypeReference tilde destinationNodeTypeReference;
+	sourceNodeTypeReference P_TILDE destinationNodeTypeReference;
 sourceNodeTypeReference:
 	'(' sourceNodeTypeName ')'
 	| '(' nodeTypeFiller? ')';
@@ -541,11 +488,11 @@ endpointPairDefinition:
 endpointPairDefinitionPointingRight:
 	'(' sourceNodeTypeName connectorPointingRight destinationNodeTypeName ')';
 endpointPairDefinitionPointingLeft:
-	'(' sourceNodeTypeName leftArrow destinationNodeTypeName ')';
+	'(' sourceNodeTypeName LEFT_ARROW destinationNodeTypeName ')';
 endpointPairDefinitionAndDirection:
 	'(' sourceNodeTypeName connectorAnyDirection destinationNodeTypeName ')';
-connectorPointingRight: TO | rightArrow;
-connectorAnyDirection: TO | tilde;
+connectorPointingRight: TO | RIGHT_ARROW;
+connectorAnyDirection: TO | P_TILDE;
 sourceNodeTypeName:
 	elementTypeName; // NOTE: Predicative production rule.
 destinationNodeTypeName:
@@ -559,57 +506,57 @@ labelSetDefinition:
 // Section 13.12 <property type set definition>
 propertyTypeSetDefinition: '{' propertyTypeDefinitionList? '}';
 propertyTypeDefinitionList:
-	propertyTypeDefinition (',' propertyTypeDefinition)*;
+	propertyTypeDefinition (P_COMMA propertyTypeDefinition)*;
 propertyTypeDefinition: propertyName typeName;
 
 // Section 13.13 <drop graph type statement>
 dropGraphTypeStatement:
-	DROP PROPERTY? GRAPH TYPE catalogGraphTypeParentAndName ifExists?;
+	DROP PROPERTY? GRAPH TYPE catalogGraphTypeParentAndName IF_EXISTS?;
 // Section 13.14 <create constant statement>
 createConstantStatement:
 	CREATE (
-		CONSTANT VALUE? catalogValueParentAndName ifNotExists?
+		CONSTANT VALUE? catalogValueParentAndName IF_NOT_EXISTS?
 		| OR REPLACE CONSTANT VALUE? catalogValueParentAndName
 	) valueInitializer;
 // Section 13.15 <drop constant statement>
 dropConstantStatement:
-	DROP CONSTANT VALUE? catalogValueParentAndName ifExists?;
+	DROP CONSTANT VALUE? catalogValueParentAndName IF_EXISTS?;
 // Section 13.16 <create procedure statement>
 createProcedureStatement:
 	CREATE (
-		PROCEDURE catalogProcedureParentAndName ofTypeSignature ifNotExists?
+		PROCEDURE catalogProcedureParentAndName ofTypeSignature IF_NOT_EXISTS?
 		| OR REPLACE PROCEDURE catalogProcedureParentAndName ofTypeSignature
 	) procedureInitializer;
 // Section 13.17 <drop procedure statement>
 dropProcedureStatement:
-	DROP PROCEDURE catalogProcedureParentAndName ifExists?;
+	DROP PROCEDURE catalogProcedureParentAndName IF_EXISTS?;
 // Section 13.18 <create query statement>
 createQueryStatement:
 	CREATE (
-		QUERY catalogQueryParentAndName ofTypeSignature ifNotExists?
+		QUERY catalogQueryParentAndName ofTypeSignature IF_NOT_EXISTS?
 		| OR REPLACE QUERY catalogQueryParentAndName ofTypeSignature
 	) queryInitializer;
 // Section 13.19 <drop query statement>
 dropQueryStatement:
-	DROP QUERY catalogQueryParentAndName ifExists?;
+	DROP QUERY catalogQueryParentAndName IF_EXISTS?;
 // Section 13.20 <create function statement>
 createFunctionStatement:
 	CREATE (
-		FUNCTION catalogFunctionParentAndName ofTypeSignature ifNotExists?
+		FUNCTION catalogFunctionParentAndName ofTypeSignature IF_NOT_EXISTS?
 		| OR REPLACE FUNCTION catalogFunctionParentAndName ofTypeSignature
 	) functionInitializer;
 // Section 13.21 <drop function statement>
 dropFunctionStatement:
-	DROP FUNCTION catalogFunctionParentAndName ifExists?;
+	DROP FUNCTION catalogFunctionParentAndName IF_EXISTS?;
 // Section 13.22 <create path pattern statement>
 createPathPatternStatement:
 	CREATE (
-		PATH PATTERN catalogPathPatternParentAndName ifNotExists?
+		PATH PATTERN catalogPathPatternParentAndName IF_NOT_EXISTS?
 		| OR REPLACE PATH PATTERN catalogPathPatternParentAndName
 	) pathPatternInitializer;
 // Section 13.23 <drop path pattern statement>
 dropPathPatternStatement:
-	DROP PATH PATTERN catalogPathPatternParentAndName ifExists?;
+	DROP PATH PATTERN catalogPathPatternParentAndName IF_EXISTS?;
 // Sectoin 13.24 <call catalog-modifying procedure statement>
 callCatalogModifyingProcedureStatement: callProcedureStatement;
 /* Section 14 Data-modifying statements */
@@ -649,24 +596,24 @@ insertStatement:
 mergeStatement: MERGE simpleGraphPattern;
 // Section 14.6 <set statement>
 setStatement: SET setItemList whenClause?;
-setItemList: setItem (',' setItem)*;
+setItemList: setItem (P_COMMA setItem)*;
 setItem: setPropertyItem | setAllPropertiesItem | setLabelItem;
 setPropertyItem:
-	bindingVariable period propertyName EQ valueExpression;
-setAllPropertiesItem: bindingVariable EQ valueExpression;
+	bindingVariable P_DOT propertyName P_EQUAL valueExpression;
+setAllPropertiesItem: bindingVariable P_EQUAL valueExpression;
 setLabelItem: labelSetExpression;
 labelSetExpression:
-	AMPERSAND label+ (AMPERSAND label+); // grammar error?
+	P_AMPERSAND label+ (P_AMPERSAND label+); // grammar error?
 // Section 14.7 <remove statement>
 removeStatement: REMOVE removeItemList whenClause?;
-removeItemList: removeItem (',' removeItem)*;
+removeItemList: removeItem (P_COMMA removeItem)*;
 removeItem: removePropertyItem | removeLabelItem;
-removePropertyItem: bindingVariable period propertyName;
-removeLabelItem: bindingVariable COLON labelSetExpression;
+removePropertyItem: bindingVariable P_DOT propertyName;
+removeLabelItem: bindingVariable P_COLON labelSetExpression;
 
 // Section 14.8 <delete statement>
 deleteStatement: DETACH? DELETE deleteItemList whenClause?;
-deleteItemList: deleteItem (',' deleteItem)*;
+deleteItemList: deleteItem (P_COMMA deleteItem)*;
 deleteItem: valueExpression;
 // Section 14.9 <call data-moidifying procedure statement>
 callDataModifyingProcedureStatement: callProcedureStatement;
@@ -683,7 +630,8 @@ whenThenLinearQueryBranch:
 elseLinearQueryBranch: ELSE linearQueryExpression;
 // Session 15.3 <composite query expression>
 compositeQueryExpression:
-	(compositeQueryExpression queryConjunction)? linearQueryExpression;
+	linearQueryExpression
+	| compositeQueryExpression queryConjunction linearQueryExpression;
 queryConjunction: setOperator | OTHERWISE;
 setOperator:
 	(UNION | EXCEPT | INTERSECT) setOperatorQuantifier?;
@@ -752,15 +700,15 @@ primitiveResultStatement:
 // Section 15.8.2 <return statement>
 returnStatement: RETURN returnStatementBody;
 returnStatementBody:
-	setQuantifier? (asterisk | returnItemList) groupByClause? orderingAndPagingClauses?;
-returnItemList: returnItem (',' returnItem)*;
+	setQuantifier? (P_STAR | returnItemList) groupByClause? orderingAndPagingClauses?;
+returnItemList: returnItem (P_COMMA returnItem)*;
 returnItem: valueExpression returnItemAlias?;
 returnItemAlias: AS identifier;
 // Section 15.8.3 <select statement>
 selectStatement:
 	SELECT setQuantifier? selectItemList selectStatementBody whereClause? groupByClause?
 		havingClause? orderByClause? offsetClause? limitClause?;
-selectItemList: selectItem (',' selectItem)*;
+selectItemList: selectItem (P_COMMA selectItem)*;
 selectItem: valueExpression selectItemAlias?;
 selectItemAlias: AS identifier;
 havingClause: HAVING searchCondition;
@@ -792,17 +740,19 @@ typeSignature:
 parenthesizedFormalParameterList: '(' formalParameterList? ')';
 formalParameterList:
 	mandatoryFormalParameterList (
-		',' optionalFormalParameterList
+		P_COMMA optionalFormalParameterList
 	)?
 	| optionalFormalParameterList;
 mandatoryFormalParameterList: formalParameterDeclarationList;
 optionalFormalParameterList:
 	OPTIONAL formalParameterDefinitionList;
 formalParameterDeclarationList:
-	formalParameterDeclaration (',' formalParameterDeclaration)*;
+	formalParameterDeclaration (
+		P_COMMA formalParameterDeclaration
+	)*;
 
 formalParameterDefinitionList:
-	formalParameterDefinition (',' formalParameterDefinition)*;
+	formalParameterDefinition (P_COMMA formalParameterDefinition)*;
 formalParameterDeclaration:
 	parameterCardinality compactVariableDeclaration;
 formalParameterDefinition:
@@ -814,14 +764,16 @@ procedureResultType: valueType;
 graphObjectPattern:
 	graphObjectPatternVariableList whereClause? yieldClause?;
 graphObjectPatternVariableList:
-	graphObjectPatternVariable (',' graphObjectPatternVariable)*;
+	graphObjectPatternVariable (
+		P_COMMA graphObjectPatternVariable
+	)*;
 graphObjectPatternVariable: graphVariable labelExpression?;
 // Section 16.7 <graph pattern>
 graphPattern:
 	pathPatternList keepClause? graphPatternWhereClause? yieldClause?;
-pathPatternList: pathPattern (',' pathPattern)*;
+pathPatternList: pathPattern (P_COMMA pathPattern)*;
 pathPattern:
-	(pathVariable EQ)? pathPatternPrefix? pathPatternExpression;
+	(pathVariable P_EQUAL)? pathPatternPrefix? pathPatternExpression;
 keepClause: KEEP pathPatternPrefix;
 graphPatternWhereClause: WHERE searchCondition;
 
@@ -831,18 +783,18 @@ pathPatternExpression:
 	| pathMultisetAlternation
 	| pathPatternUnion;
 pathMultisetAlternation:
-	pathTerm multisetAlternationOperator pathTerm (
-		multisetAlternationOperator pathTerm
+	pathTerm P_MULTISET_ALTERNATION pathTerm (
+		P_MULTISET_ALTERNATION pathTerm
 	)*;
-pathPatternUnion:
-	pathTerm verticalBar pathTerm (verticalBar pathTerm)*;
+pathPatternUnion: pathTerm P_V_BAR pathTerm (P_V_BAR pathTerm)*;
 pathTerm: pathFactor | pathConcatenation;
+pathConcatenation: pathTerm pathFactor;
 pathFactor:
 	pathPrimary
 	| quantifiedPathPrimary
 	| questionedPathPrimary;
 quantifiedPathPrimary: pathPrimary graphPatternQuantifier;
-questionedPathPrimary: pathPrimary questionMark;
+questionedPathPrimary: pathPrimary P_QUESTION;
 pathPrimary:
 	elementPattern
 	| parenthesizedPathPatternExpression
@@ -853,15 +805,15 @@ elementPatternFiller:
 	elementVariableDeclaration? isLabelExpression? elementPatternPredicate? elementPatternCostClause
 		?;
 elementVariableDeclaration: elementVariable;
-isLabelExpression: (IS | COLON) labelExpression;
+isLabelExpression: (IS | P_COLON) labelExpression;
 elementPatternPredicate:
 	elementPatternWhereClause
 	| elementPropertySpecification;
 elementPatternWhereClause: WHERE searchCondition;
 elementPropertySpecification: '{' propertyKeyValuePairList '}';
 propertyKeyValuePairList:
-	propertyKeyValuePair (',' propertyKeyValuePair)*;
-propertyKeyValuePair: propertyName COLON valueExpression;
+	propertyKeyValuePair (P_COMMA propertyKeyValuePair)*;
+propertyKeyValuePair: propertyName P_COLON valueExpression;
 elementPatternCostClause: costClause;
 costClause: COST valueExpression (DEFAULT valueExpression)?;
 edgePattern: fullEdgePattern | abbreviatedEdgePattern;
@@ -874,41 +826,41 @@ fullEdgePattern:
 	| fullEdgeLeftOrRight
 	| fullEdgeAnyDirection;
 fullEdgePointingLeft:
-	leftArrowBracket elementPatternFiller rightBracketMinus;
+	LEFT_ARROW_BRACKET elementPatternFiller RIGHT_BRACKET_MINUS;
 fullEdgePointingRight:
-	minusLeftBracket elementPatternFiller bracketRightArrow;
+	MINUS_LEFT_BRACKET elementPatternFiller BRACKET_RIGHT_ARROW;
 fullEdgeUndirected:
-	tildeLeftBracket elementPatternFiller rightBracketTilde;
+	TILDE_LEFT_BRACKET elementPatternFiller RIGHT_BRACKET_TILDE;
 fullEdgeLeftOrUndirected:
-	leftArrowTildeBracket elementPatternFiller rightBracketTilde;
+	LEFT_ARROW_TILDE_BRACKET elementPatternFiller RIGHT_BRACKET_TILDE;
 fullEdgeUndirectedOrRight:
-	tildeLeftBracket elementPatternFiller bracketTildeRightArrow;
+	TILDE_LEFT_BRACKET elementPatternFiller BRACKET_TILDE_RIGHT_ARROW;
 fullEdgeLeftOrRight:
-	leftArrowBracket elementPatternFiller bracketRightArrow;
+	LEFT_ARROW_BRACKET elementPatternFiller BRACKET_RIGHT_ARROW;
 fullEdgeAnyDirection:
-	minusLeftBracket elementPatternFiller rightBracketMinus;
+	MINUS_LEFT_BRACKET elementPatternFiller RIGHT_BRACKET_MINUS;
 abbreviatedEdgePattern:
-	leftArrow
-	| tilde
-	| rightArrow
-	| leftArrowTilde
-	| tildeRightArrow
-	| leftMinusRight
-	| minusSign;
+	LEFT_ARROW
+	| P_TILDE
+	| RIGHT_ARROW
+	| LEFT_ARROW_TILDE
+	| TILDE_RIGHT_ARROW
+	| LEFT_MINUS_RIGHT
+	| P_MINUS;
 graphPatternQuantifier:
-	asterisk
-	| plusSign
+	P_STAR
+	| P_PLUS
 	| fixedQuantifier
 	| generalQuantifier;
 fixedQuantifier: '{' unsignedInteger '}';
 generalQuantifier:
-	'{' lowerBound = unsignedInteger? ',' upperBound = unsignedInteger? '}';
+	'{' lowerBound = unsignedInteger? P_COMMA upperBound = unsignedInteger? '}';
 parenthesizedPathPatternExpression:
 	'(' subpathVariableDeclaration? pathModePrefix? pathPatternExpression
 		parenthesizedPathPatternWhereClause? parenthesizedPathPatternCostClause? ')'
 	| '[' subpathVariableDeclaration? pathModePrefix? pathPatternExpression
 		parenthesizedPathPatternWhereClause? parenthesizedPathPatternCostClause? ']';
-subpathVariableDeclaration: subpathVariable EQ;
+subpathVariableDeclaration: subpathVariable P_EQUAL;
 parenthesizedPathPatternWhereClause: WHERE searchCondition;
 parenthesizedPathPatternCostClause: costClause;
 // Section 16.9 <path pattern prefix>
@@ -942,21 +894,21 @@ numberOfgroups: simpleValueSpecification;
 // Section 16.10<simple graph pattern>
 simpleGraphPattern: simplePathPatternList;
 simplePathPatternList:
-	simplePathPattern (',' simplePathPattern)*;
+	simplePathPattern (P_COMMA simplePathPattern)*;
 simplePathPattern:
 	pathPattern; // NOTE: Predicative production rule.
 //Section 16.11<label expression>
 labelExpression: labelTerm | labelDisjunction;
-labelDisjunction: labelExpression VERTICAL_BAR labelTerm;
+labelDisjunction: labelExpression P_V_BAR labelTerm;
 labelTerm: labelFactor | labelConjunction;
-labelConjunction: labelTerm AMPERSAND labelFactor;
+labelConjunction: labelTerm P_AMPERSAND labelFactor;
 labelFactor: labelPrimary | labelNegation;
-labelNegation: EXCLAMATION_MARK labelPrimary;
+labelNegation: P_EXCLAMATION labelPrimary;
 labelPrimary:
 	label
 	| wildcardLabel
 	| parenthesizedLabelExpression;
-wildcardLabel: PERCENT;
+wildcardLabel: P_PERCENT;
 parenthesizedLabelExpression:
 	'(' labelExpression ')'
 	| '[' labelExpression ']';
@@ -970,40 +922,39 @@ simplifiedPathPatternExpression:
 	| simplifiedDefaultingLeftOrRight
 	| simplifiedDefaultingAnyDirection;
 simplifiedDefaultingLeft:
-	leftMinusSlash simplifiedContents slashMinus;
+	LEFT_MINUS_SLASH simplifiedContents SLASH_MINUS;
 simplifiedDefaultingUndirected:
-	tildeSlash simplifiedContents slashTilde;
+	TILDE_SLASH simplifiedContents SLASH_TILDE;
 simplifiedDefaultingRight:
-	minusSlash simplifiedContents slashMinusRight;
+	MINUS_SLASH simplifiedContents SLASH_MINUS_RIGHT;
 simplifiedDefaultingLeftOrUndirected:
-	leftTildeSlash simplifiedContents slashTilde;
+	LEFT_TILDE_SLASH simplifiedContents SLASH_TILDE;
 simplifiedDefaultingUndirectedOrRight:
-	tildeSlash simplifiedContents slashTildeRight;
+	TILDE_SLASH simplifiedContents SLASH_TILDE_RIGTH;
 simplifiedDefaultingLeftOrRight:
-	leftMinusSlash simplifiedContents slashMinusRight;
+	LEFT_MINUS_SLASH simplifiedContents SLASH_MINUS_RIGHT;
 simplifiedDefaultingAnyDirection:
-	minusSlash simplifiedContents slashMinus;
+	MINUS_SLASH simplifiedContents SLASH_MINUS;
 simplifiedContents:
 	simplifiedTerm
 	| simplifiedPathUnion
 	| simplifiedMultisetAlternation;
-simplifiedPathUnion:
-	simplifiedTerm (verticalBar simplifiedTerm)+;
+simplifiedPathUnion: simplifiedTerm (P_V_BAR simplifiedTerm)+;
 simplifiedMultisetAlternation:
-	simplifiedTerm (multisetAlternationOperator simplifiedTerm)+;
+	simplifiedTerm (P_MULTISET_ALTERNATION simplifiedTerm)+;
 simplifiedTerm: simplifiedFactorLow | simplifiedConcatenation;
 simplifiedConcatenation: simplifiedTerm simplifiedFactorLow;
 simplifiedFactorLow:
 	simplifiedFactorHigh
 	| simplifiedConjunction;
 simplifiedConjunction:
-	simplifiedFactorLow ampersand simplifiedFactorHigh;
+	simplifiedFactorLow P_AMPERSAND simplifiedFactorHigh;
 simplifiedFactorHigh:
 	simplifiedTertiary
 	| simplifiedQuantified
 	| simplifiedQuestioned;
 simplifiedQuantified: simplifiedTertiary graphPatternQuantifier;
-simplifiedQuestioned: simplifiedTertiary questionMark;
+simplifiedQuestioned: simplifiedTertiary P_QUESTION;
 simplifiedTertiary:
 	simplifiedDirectionOverride
 	| simplifiedSecondary;
@@ -1016,21 +967,21 @@ simplifiedDirectionOverride:
 	| simplifiedDirectionOverrideLeftOrRight
 	| simplifiedDirectionOverrideAnyDirection;
 simplifiedDirectionOverrideLeft:
-	leftAngleBracket simplifiedSecondary;
+	P_L_ANGLE_BRACKET simplifiedSecondary;
 simplifiedDirectionOverrideUndirected:
-	tilde simplifiedSecondary;
+	P_TILDE simplifiedSecondary;
 simplifiedDirectionOverrideRight:
-	simplifiedSecondary rightAngleBracket;
+	simplifiedSecondary P_R_ANGLE_BRACKET;
 simplifiedDirectionOverrideLeftOrUndirected:
-	leftArrowTilde simplifiedSecondary;
+	LEFT_ARROW_TILDE simplifiedSecondary;
 simplifiedDirectionOverrideUndirectedOrRight:
-	tilde simplifiedSecondary rightAngleBracket;
+	P_TILDE simplifiedSecondary P_R_ANGLE_BRACKET;
 simplifiedDirectionOverrideLeftOrRight:
-	leftAngleBracket simplifiedSecondary rightAngleBracket;
+	P_L_ANGLE_BRACKET simplifiedSecondary P_R_ANGLE_BRACKET;
 simplifiedDirectionOverrideAnyDirection:
-	minusSign simplifiedSecondary;
+	P_MINUS simplifiedSecondary;
 simplifiedSecondary: simplifiedPrimary | simplifiedNegation;
-simplifiedNegation: exclamationMark simplifiedPrimary;
+simplifiedNegation: P_EXCLAMATION simplifiedPrimary;
 simplifiedPrimary:
 	label
 	| '(' simplifiedContents ')'
@@ -1049,19 +1000,19 @@ inlineProcedureCall: nestedProcedureSpecification;
 namedProcedureCall:
 	procedureReference '(' procedureArgumentList? ')' yieldClause?;
 procedureArgumentList:
-	procedureArgument (',' procedureArgument)*;
+	procedureArgument (P_COMMA procedureArgument)*;
 procedureArgument: valueExpression;
 
 //Section 16.17<yield clause>
 yieldClause: YIELD yieldItemList;
-yieldItemList: yieldItem (',' yieldItem)*;
+yieldItemList: yieldItem (P_COMMA yieldItem)*;
 yieldItem: yieldItemName yieldItemAlias?;
 yieldItemName: identifier;
 yieldItemAlias: AS identifier;
 //Section 16.18<group by clause>
 groupByClause: GROUP BY groupingElementList;
 groupingElementList:
-	groupingElement (',' groupingElement)*
+	groupingElement (P_COMMA groupingElement)*
 	| emptyGroupingSet;
 groupingElement: bindingVariable;
 emptyGroupingSet: '(' ')';
@@ -1079,13 +1030,13 @@ orderByOrdinalityOrIndex: WITH (ORDINALITY | INDEX) identifier?;
 
 //Section 16.21<aggregate function>
 aggregateFunction:
-	COUNT '(' asterisk ')'
+	COUNT '(' P_STAR ')'
 	| generalSetFunction
 	| binarySetFunction;
 generalSetFunction:
 	generalSetFunctionType '(' setQuantifier valueExpression ')';
 binarySetFunction:
-	binarySetFunctionType '(' dependentValueExpression ',' independentValueExpression ')';
+	binarySetFunctionType '(' dependentValueExpression P_COMMA independentValueExpression ')';
 generalSetFunctionType:
 	AVG
 	| COUNT
@@ -1097,13 +1048,13 @@ generalSetFunctionType:
 	| ST_Dev
 	| ST_Dev_P;
 setQuantifier: (DISTINCT | ALL);
-binarySetFunctionType: percentileCont | percentileDist;
+binarySetFunctionType: PERCENTILE_CONT | PERCENTILE_DIST;
 dependentValueExpression: setQuantifier? numericValueExpression;
 independentValueExpression: numericValueExpression;
 
 //Section 16.22<sort specification list>
 sortSpecificationList:
-	sortSpecification (',' sortSpecification)*;
+	sortSpecification (P_COMMA sortSpecification)*;
 sortSpecification: sortKey orderingSpecification?;
 sortKey: valueExpression;
 orderingSpecification: (ASC | DESC);
@@ -1140,9 +1091,9 @@ catalogGraphParentAndName:
 	graphParentSpecification graphName
 	| urlPathParameter;
 graphParentSpecification:
-	parentCatalogObjectReference? (qualifiedObjectName period)?;
+	parentCatalogObjectReference? (qualifiedObjectName P_DOT)?;
 localGraphReference: qualifiedGraphName;
-qualifiedGraphName: (qualifiedObjectName period)? graphName;
+qualifiedGraphName: (qualifiedObjectName P_DOT)? graphName;
 //Section 17.3 Graph type references
 graphTypeReference:
 	graphTypeResolutionExpression
@@ -1156,10 +1107,10 @@ catalogGraphTypeParentAndName:
 	graphTypeParentSpecification graphTypeName
 	| urlPathParameter;
 graphTypeParentSpecification:
-	(parentCatalogObjectReference)? (qualifiedObjectName period)?;
+	(parentCatalogObjectReference)? (qualifiedObjectName P_DOT)?;
 localGraphTypeReference: qualifiedGraphTypeName;
 qualifiedGraphTypeName:
-	(qualifiedObjectName period)? graphTypeName;
+	(qualifiedObjectName P_DOT)? graphTypeName;
 //Section 17.4 Binding table references
 bindingTableReference:
 	bindingTableResolutionExpression
@@ -1174,10 +1125,10 @@ catalogBindingTableParentAndName:
 	bindingTableParentSpecification bindingTableName
 	| urlPathParameter;
 bindingTableParentSpecification:
-	parentCatalogObjectReference? (qualifiedObjectName period)?;
+	parentCatalogObjectReference? (qualifiedObjectName P_DOT)?;
 localBindingTableReference: qualifiedBindingTableName;
 qualifiedBindingTableName:
-	(qualifiedObjectName period)? bindingTableName;
+	(qualifiedObjectName P_DOT)? bindingTableName;
 //Section 17.5 Value references
 valueReference: valueResolutionExpression | localValueReference;
 valueResolutionExpression: VALUE catalogValueReference;
@@ -1188,9 +1139,9 @@ catalogValueParentAndName:
 	valueParentSpecification valueName
 	| urlPathParameter;
 valueParentSpecification:
-	parentCatalogObjectReference? (qualifiedObjectName period)?;
+	parentCatalogObjectReference? (qualifiedObjectName P_DOT)?;
 localValueReference: qualifiedValueName;
-qualifiedValueName: (qualifiedObjectName period)? valueName;
+qualifiedValueName: (qualifiedObjectName P_DOT)? valueName;
 //Section 17.6 Procedure references
 procedureReference:
 	procedureResolutionExpression
@@ -1204,10 +1155,10 @@ catalogProcedureParentAndName:
 	procedureParentSpecification procedureName
 	| urlPathParameter;
 procedureParentSpecification:
-	parentCatalogObjectReference? (qualifiedObjectName period)?;
+	parentCatalogObjectReference? (qualifiedObjectName P_DOT)?;
 localProcedureReference: qualifiedProcedureName;
 qualifiedProcedureName:
-	(qualifiedObjectName period)? procedureName;
+	(qualifiedObjectName P_DOT)? procedureName;
 // Section 17.7 Query references
 queryReference: queryResolutionExpression | localQueryReference;
 queryResolutionExpression: QUERY catalogQueryReference;
@@ -1218,9 +1169,9 @@ catalogQueryParentAndName:
 	queryParentSpecification queryName
 	| urlPathParameter;
 queryParentSpecification:
-	parentCatalogObjectReference? (qualifiedObjectName period)?;
+	parentCatalogObjectReference? (qualifiedObjectName P_DOT)?;
 localQueryReference: qualifiedQueryName;
-qualifiedQueryName: (qualifiedObjectName period)? queryName;
+qualifiedQueryName: (qualifiedObjectName P_DOT)? queryName;
 // Section 17.8 Function references
 functionReference:
 	functionResolutionExpression
@@ -1233,10 +1184,10 @@ catalogFunctionParentAndName:
 	functionParentSpecification functionName
 	| urlPathParameter;
 functionParentSpecification:
-	parentCatalogObjectReference? (qualifiedObjectName period)?;
+	parentCatalogObjectReference? (qualifiedObjectName P_DOT)?;
 localFunctionReference: qualifiedFunctionName;
 qualifiedFunctionName:
-	(qualifiedObjectName period)? functionName;
+	(qualifiedObjectName P_DOT)? functionName;
 
 // Section 17.9 Path pattern references
 pathPatternReference:
@@ -1251,36 +1202,37 @@ catalogPathPatternParentAndName:
 	pathPatternParentSpecification pathPatternName
 	| urlPathParameter;
 pathPatternParentSpecification:
-	parentCatalogObjectReference? (qualifiedObjectName period)?;
+	parentCatalogObjectReference? (qualifiedObjectName P_DOT)?;
 localPathPatternReference: qualifiedPathPatternName;
 qualifiedPathPatternName:
-	(qualifiedObjectName period)? pathPatternName;
+	(qualifiedObjectName P_DOT)? pathPatternName;
 // Section 17.10<catalog object reference>
 catalogObjectReference: catalogUrlPath;
-parentCatalogObjectReference: catalogObjectReference SOLIDUS?;
+parentCatalogObjectReference: catalogObjectReference P_SOLIDUS?;
 catalogUrlPath:
 	absoluteUrlPath
 	| relativeUrlPath
 	| parameterizedUrlPath;
-absoluteUrlPath: SOLIDUS simpleUrlPath?;
+absoluteUrlPath: P_SOLIDUS simpleUrlPath?;
 relativeUrlPath:
 	parentObjectRelativeUrlPath
 	| simpleRelativeUrlPath
-	| period;
+	| P_DOT;
 parentObjectRelativeUrlPath:
-	predefinedParentObjectParameter (SOLIDUS simpleUrlPath)?;
+	predefinedParentObjectParameter (P_SOLIDUS simpleUrlPath)?;
 simpleRelativeUrlPath:
-	DOUBLE_PERIOD (SOLIDUS DOUBLE_PERIOD)* (
-		SOLIDUS simpleUrlPath
+	P_DOUBLE_DOT (P_SOLIDUS P_DOUBLE_DOT)* (
+		P_SOLIDUS simpleUrlPath
 	)?
 	| simpleUrlPath;
-parameterizedUrlPath: urlPathParameter (SOLIDUS simpleUrlPath)?;
-simpleUrlPath: urlSegment (SOLIDUS urlSegment)*;
+parameterizedUrlPath:
+	urlPathParameter (P_SOLIDUS simpleUrlPath)?;
+simpleUrlPath: urlSegment (P_SOLIDUS urlSegment)*;
 urlSegment: identifier;
 
 // Section 17.11<qualified object name>
 qualifiedObjectName: qualifiedNamePerfix objectName;
-qualifiedNamePerfix: (objectName period)*;
+qualifiedNamePerfix: (objectName P_DOT)*;
 // Section 17.12<url path parameter>
 urlPathParameter: parameter;
 
@@ -1306,9 +1258,16 @@ predicate:
 	| nullPredicate
 	| normalizedPredicate;
 //Section 19.3 <comparison predicate>
-comparisionPredicate:
+comparisonPredicate:
 	nonParenthesizedValueExpressionPrimary compOp nonParenthesizedValueExpressionPrimary;
-compOp: (EQ | NEQ | LT | GT | LE | GE);
+compOp: (
+		P_EQUAL
+		| P_NOT_EQUAL
+		| P_LESS_THAN
+		| P_GREATE_THAN
+		| P_LESS_EQUAL
+		| P_GREATE_EQUAL
+	);
 //Section 19.4 <exists predicate>
 existsPredicate:
 	EXISTS ('(' graphPattern ')' | nestedQuerySpecification);
@@ -1377,9 +1336,9 @@ collectionValueExpression:
 	listValueExpression
 	| multisetValueExpression
 	| setValueExpression
-	| orderedsetValueExpression;
+	| orderedSetValueExpression;
 setValueExpression: valueExpressionPrimary;
-orderdedSetValueExpression: valueExpressionPrimary;
+orderedSetValueExpression: valueExpressionPrimary;
 mapValueExpression: valueExpressionPrimary;
 recordValueExpression: valueExpressionPrimary;
 // Section 20.3 <boolean value expression>
@@ -1390,7 +1349,9 @@ booleanValueExpression:
 booleanTerm: booleanFactor | booleanTerm AND booleanTerm;
 booleanFactor: NOT? booleanTest;
 booleanTest:
-	booleanPrimary (((IS NOT?) | EQ | NEQ) truthValue)?;
+	booleanPrimary (
+		((IS NOT?) | P_EQUAL | P_NOT_EQUAL) truthValue
+	)?;
 truthValue: TRUE | FALSE | UNKNOWN | NULL;
 booleanPrimary: predicate | booleanPredicand;
 booleanPredicand:
@@ -1401,10 +1362,10 @@ parenthesizedBooleanValueExpression:
 // Section 20.4 <numeric value expression>
 numericValueExpression:
 	term
-	| numericValueExpression plusSign term
-	| numericValueExpression minusSign term;
-term: factor | term asterisk factor | term SOLIDUS factor;
-factor: (minusSign | plusSign)? numericPrimary;
+	| numericValueExpression P_PLUS term
+	| numericValueExpression P_MINUS term;
+term: factor | term P_STAR factor | term P_SOLIDUS factor;
+factor: (P_MINUS | P_PLUS)? numericPrimary;
 numericPrimary: valueExpressionPrimary | numericValueFunction;
 // Section 20.5 <value expression primary>
 valueExpressionPrimary:
@@ -1448,7 +1409,7 @@ octetLengthExpression:
 pathLengthExpression: LENGTH '(' bindingVariable ')';
 absoluteValueExpression: ABS '(' numericValueExpression ')';
 modulusExpression:
-	MOD '(' numericValueExpressionDividend ',' numericValueExpressionDivisor ')';
+	MOD '(' numericValueExpressionDividend P_COMMA numericValueExpressionDivisor ')';
 numericValueExpressionDividend: numericValueExpression;
 numericValueExpressionDivisor: numericValueExpression;
 trigonometricFunction:
@@ -1467,14 +1428,14 @@ trigonometricFunctionName:
 	| DEGREES
 	| RADIANS;
 generalLogarithmFunction:
-	LOG '(' generalLogarithmBase ',' generalLogarithmArgument ')';
+	LOG '(' generalLogarithmBase P_COMMA generalLogarithmArgument ')';
 generalLogarithmBase: numericValueExpression;
 generalLogarithmArgument: numericValueExpression;
 commonLogarithm: LOG10 '(' numericValueExpression ')';
 naturalLogarithm: LN '(' numericValueExpression ')';
 exponentialFunction: EXP '(' numericValueExpression ')';
 powerFunction:
-	POWER '(' base = numericValueExpression ',' exponent = numericValueExpression ')';
+	POWER '(' base = numericValueExpression P_COMMA exp = numericValueExpression ')';
 squareRoot: SQRT '(' numericValueExpression ')';
 floorFunction: FLOOR '(' numericValueExpression ')';
 ceilingFunction:
@@ -1485,16 +1446,16 @@ outDegreeFunction: OUT_DEGREE '(' bindingVariable ')';
 stringValueExpression:
 	characterValueExpression
 	| binaryValueExpression;
-characterValueExpression: concatenation | characterFactor;
+characterValueExpression: characterFactor | concatenation;
 concatenation:
-	characterValueExpression concatenationOperator characterFactor;
+	characterValueExpression P_CONCATENATION characterFactor;
 characterFactor: characterPrimary;
 characterPrimary: valueExpressionPrimary | stringValueFunction;
 binaryValueExpression: binaryConcatenation | binaryFactor;
 binaryFactor: binaryPrimary;
 binaryPrimary: valueExpressionPrimary | stringValueFunction;
 binaryConcatenation:
-	binaryValueExpression concatenationOperator binaryFactor;
+	binaryValueExpression P_CONCATENATION binaryFactor;
 // Section 20.8 <string value function>
 stringValueFunction:
 	characterValueFunction
@@ -1505,34 +1466,38 @@ characterValueFunction:
 	| trimFunction
 	| normalizeFunction;
 characterSubstringFunction:
-	SUBSTRING '(' characterValueExpression ',' startPosition (
-		',' stringLength
+	SUBSTRING '(' characterValueExpression P_COMMA startPosition (
+		P_COMMA stringLength
 	)? ')'
-	| LEFT '(' characterValueExpression ',' stringLength ')'
-	| RIGHT '(' characterValueExpression ',' stringLength ')';
+	| LEFT '(' characterValueExpression P_COMMA stringLength ')'
+	| RIGHT '(' characterValueExpression P_COMMA stringLength ')';
 fold:
 	(UPPER | TO_UPPER | LOWER | TO_LOWER) '(' characterValueExpression ')';
 trimFunction:
-	TRIM '(' trimSource (',' trimSpecification trimCharacter?)? ')'
+	TRIM '(' trimSource (
+		P_COMMA trimSpecification trimCharacter?
+	)? ')'
 	| L_TRIM '(' trimSource ')'
 	| R_TRIM '(' trimSource ')';
 trimSource: characterValueExpression;
 trimSpecification: LEADING | TRAILING | BOTH;
 trimCharacter: characterValueExpression;
 normalizeFunction:
-	NORMALIZE '(' characterValueExpression (',' normalForm) ')';
+	NORMALIZE '(' characterValueExpression (P_COMMA normalForm) ')';
 normalForm: NFC | NFD | NFKC | NFKD;
 binaryValueFunction:
 	binarySubstringFunction
 	| binaryTrimFunction;
 binarySubstringFunction:
-	SUBSTRING '(' binaryValueExpression ',' startPosition (
-		',' stringLength
+	SUBSTRING '(' binaryValueExpression P_COMMA startPosition (
+		P_COMMA stringLength
 	)? ')'
-	| LEFT '(' binaryValueExpression ',' stringLength ')'
-	| RIGHT '(' binaryValueExpression ',' stringLength ')';
+	| LEFT '(' binaryValueExpression P_COMMA stringLength ')'
+	| RIGHT '(' binaryValueExpression P_COMMA stringLength ')';
 binaryTrimFunction:
-	TRIM '(' binaryTrimSource (',' trimSpecification trimOctet?)? ')'
+	TRIM '(' binaryTrimSource (
+		P_COMMA trimSpecification trimOctet?
+	)? ')'
 	| L_TRIM '(' binaryTrimSource ')'
 	| R_TRIM '(' binaryTrimSource ')';
 binaryTrimSource: binaryValueExpression;
@@ -1542,8 +1507,8 @@ stringLength: numericValueExpression;
 // Section 20.9 <datetime value expression>
 datetimeValueExpression:
 	datetimeTerm
-	| durationValueExpression plusSign datetimeTerm
-	| datetimeTerm (plusSign | minusSign) durationValueExpression;
+	| durationValueExpression P_PLUS datetimeTerm
+	| datetimeTerm (P_PLUS | P_MINUS) durationValueExpression;
 datetimeTerm: datetimeFactor;
 datetimeFactor: datetimePrimary;
 datetimePrimary: valueExpressionPrimary | datetimeValueFunction;
@@ -1578,21 +1543,21 @@ datetimeFunctionParameters:
 // Section 20.11<duration value expression>
 durationValueExpression:
 	durationTerm
-	| durationValueExpression (plusSign | minusSign) durationTerm
-	| '(' datetimeValueExpression minusSign datetimeValueExpression ')';
+	| durationValueExpression (P_PLUS | P_MINUS) durationTerm
+	| '(' datetimeValueExpression P_MINUS datetimeValueExpression ')';
 durationTerm:
 	durationFactor
-	| durationTerm asterisk factor
-	| durationTerm SOLIDUS factor
-	| term asterisk durationFactor;
-durationFactor: (plusSign | minusSign)? durationPrimary;
+	| durationTerm P_STAR factor
+	| durationTerm P_SOLIDUS factor
+	| term P_STAR durationFactor;
+durationFactor: (P_PLUS | P_MINUS)? durationPrimary;
 durationPrimary: valueExpressionPrimary | durationValueFunction;
 // Section 20.12<duration value function>
 durationValueFunction:
 	durationFunction durationAbsoluteValueFunction;
 durationFunction: DURATION '(' durationFunctionParameters ')';
 durationFunctionParameters:
-	durationString
+	durationString = STRING_LITERAL
 	| mapValueConstructor;
 durationAbsoluteValueFunction:
 	ABS '(' durationValueExpression ')';
@@ -1603,8 +1568,8 @@ graphElementPrimary:
 	| valueExpressionPrimary;
 // Section 20.14<graph element function>
 graphElementFunction: startNodeFunction | endNodeFunction;
-startNodeFunction: startNode '(' bindingVariable ')';
-endNodeFunction: endNode '(' bindingVariable ')';
+startNodeFunction: START_NODE '(' bindingVariable ')';
+endNodeFunction: END_NODE '(' bindingVariable ')';
 // Section 20.15<collection value constructor>
 collectionValueConstructor:
 	listValueConstructor
@@ -1616,19 +1581,19 @@ collectionValueConstructor:
 // Section 20.16<list value expression>
 listValueExpression: listConcatenation | listPrimary;
 listConcatenation:
-	listValueExpression concatenationOperator listPrimary;
+	listValueExpression P_CONCATENATION listPrimary;
 listPrimary: listValueFunction | valueExpressionPrimary;
 
 // Section 20.17<list value function>
 listValueFunction: tailListFunction | trimListFunction;
 tailListFunction: TAIL '(' listValueExpression ')';
 trimListFunction:
-	TRIM '(' listValueExpression ',' numericValueExpression ')';
+	TRIM '(' listValueExpression P_COMMA numericValueExpression ')';
 // Section 20.18<list value constructor>
 listValueConstructor: listValueConstructorByEnumeration;
 listValueConstructorByEnumeration:
 	listValueTypeName '[' listElementList ']';
-listElementList: listElement (',' listElement)*;
+listElementList: listElement (P_COMMA listElement)*;
 listElement: valueExpression;
 // Section 20.19<multiset value expression>
 multisetValueExpression:
@@ -1649,12 +1614,12 @@ multisetSetFunction: SET '(' multisetValueExpression ')';
 multisetValueConstructor: multisetValueConstructorByEnumeration;
 multisetValueConstructorByEnumeration:
 	MULTISET '{' multisetElementList '}';
-multisetElementList: multisetElement (',' multisetElement)*;
+multisetElementList: multisetElement (P_COMMA multisetElement)*;
 multisetElement: valueExpression;
 // Section 20.22<set value constructor>
 setValueConstructor: setValueConstructorByEnumeration;
 setValueConstructorByEnumeration: SET '{' setElementList '}';
-setElementList: setElement (',' setElement)*;
+setElementList: setElement (P_COMMA setElement)*;
 setElement: valueExpression;
 // Section 20.23<ordered set value constructor>
 orderedSetValueConstructor:
@@ -1666,25 +1631,25 @@ orderedSetValueConstructorByEnumeration:
 	);
 
 orderedSetElementList:
-	orderedSetElement (',' orderedSetElement)*;
+	orderedSetElement (P_COMMA orderedSetElement)*;
 orderedSetElement: valueExpression;
 // Section 20.24<map value constructor>
 mapValueConstructor: mapValueConstructorByEnumeration;
 mapValueConstructorByEnumeration: MAP '{' mapElementList '}';
-mapElementList: mapElement (',' mapElement)*;
+mapElementList: mapElement (P_COMMA mapElement)*;
 mapElement: mapKey mapValue;
-mapKey: valueExpression COLON;
+mapKey: valueExpression P_COLON;
 mapValue: valueExpression;
 // Section 20.25<record value constructor>
 recordValueConstructor:
 	recordValueConstructorByEnumeration
 	| UNIT;
 recordValueConstructorByEnumeration: RECORD? '{' fieldList '}';
-fieldList: field (',' field)*;
+fieldList: field (P_COMMA field)*;
 field: fieldName fieldValue;
 fieldValue: valueExpression;
 // Section 20.26<property reference>
-propertyReference: graphElementPrimary period propertyName;
+propertyReference: graphElementPrimary P_DOT propertyName;
 
 // Section 20.27<value query expression>
 valueQueryExpression: VALUE nestedQuerySpecification;
@@ -1692,8 +1657,8 @@ valueQueryExpression: VALUE nestedQuerySpecification;
 // Section 20.28<case expression>
 caseExpression: caseAbbreviation | caseSpecification;
 caseAbbreviation:
-	NULLIF '(' valueExpression ',' valueExpression ')'
-	| COALESCE '(' valueExpression (',' valueExpression)* ')';
+	NULLIF '(' valueExpression P_COMMA valueExpression ')'
+	| COALESCE '(' valueExpression (P_COMMA valueExpression)* ')';
 caseSpecification: simpleCase | searchedCase;
 simpleCase: CASE caseOperand simpleWhenClause+ elseClause? END;
 searchedCase: CASE searchedWhenClause* elseClause? END;
@@ -1701,7 +1666,7 @@ simpleWhenClause: WHEN whenOperandList THEN result;
 searchedWhenClause: WHEN searchCondition THEN result;
 elseClause: ELSE result;
 caseOperand: nonParenthesizedValueExpressionPrimary;
-whenOperandList: whenOperand (',' whenOperand)*;
+whenOperandList: whenOperand (P_COMMA whenOperand)*;
 whenOperand:
 	nonParenthesizedValueExpressionPrimary
 	| compOp nonParenthesizedValueExpressionPrimary
@@ -1739,10 +1704,10 @@ unsignedLiteral: unsignedNumericLiteral | generalLiteral;
 booleanLiteral: TRUE | FALSE | UNKNOWN;
 characterStringLiteral:
 	unbrokenCharacterStringLiteral (
-		sperator unbrokenCharacterStringLiteral
+		(SPACE | P_COMMA)* unbrokenCharacterStringLiteral
 	)*;
 unbrokenCharacterStringLiteral: STRING_LITERAL;
-binaryStringLiteral: 'X' '\'' HEX_DIGIT+ '\'';
+binaryStringLiteral: BINARY_STRING_LITERAL;
 numericLiteral: signedNumericLiteral | unsignedNumericLiteral;
 signedNumericLiteral: ('+' | '-')? unsignedNumericLiteral;
 unsignedNumericLiteral:
@@ -1750,8 +1715,8 @@ unsignedNumericLiteral:
 	| approximateNumericLiteral;
 exactNumericLiteral:
 	unsignedInteger
-	| unsignedDecimalInteger (period unsignedDecimalInteger?)?
-	| period unsignedDecimalInteger;
+	| unsignedDecimalInteger (P_DOT unsignedDecimalInteger?)?
+	| P_DOT unsignedDecimalInteger;
 unsignedInteger:
 	unsignedDecimalInteger
 	| unsignedHexadecimalInteger
@@ -1762,7 +1727,7 @@ unsignedHexadecimalInteger: UNSIGNED_HEX_INTEGER;
 unsignedOctalInteger: UNSIGNED_OCT_INTEGER;
 unsignedBinaryInteger: UNSIGNED_BIN_INTEGER;
 signedDecimalInteger: ('+' | '-')? unsignedDecimalInteger;
-approximateNumericLiteral: mantissa 'E' exponent;
+approximateNumericLiteral: mantissa P_EXP exponent;
 mantissa: exactNumericLiteral;
 exponent: signedDecimalInteger;
 temporalLiteral: dateLiteral | timeLiteral | datetimeLiteral;
@@ -1793,7 +1758,7 @@ valueType:
 	| bindingTableTypeExpression
 	| NOTHING;
 ofValueType: ofTypePrefix? valueType;
-ofTypePrefix: COLON COLON | OF;
+ofTypePrefix: P_COLON P_COLON | OF;
 predefinedType:
 	booleanType
 	| stringType
@@ -1808,7 +1773,8 @@ exactNumericType:
 	binaryExactNumericType
 	| decimalExactNumericType;
 binaryExactNumericType: INTEGER | INTEGER32 | INTEGER64;
-decimalExactNumericType: DECIMAL '(' precision (',' scale)? ')';
+decimalExactNumericType:
+	DECIMAL '(' precision (P_COMMA scale)? ')';
 precision: unsignedDecimalInteger;
 scale: unsignedDecimalInteger;
 approximateNumericType: FLOAT | FLOAT32 | FLOAT64 | FLOAT128;
@@ -1830,10 +1796,10 @@ listValueTypeName: LIST | ARRAY;
 multisetValueType: valueType MULTISET;
 setValueType: valueType SET;
 orderedSetValueType: valueType ORDERED SET;
-mapValueType: MAP '<' mapKeyType ',' valueType '>';
+mapValueType: MAP '<' mapKeyType P_COMMA valueType '>';
 mapKeyType: predefinedType;
 recordValueType: RECORD? '{' fieldTypeList? '}';
-fieldTypeList: fieldType (',' fieldType)*;
+fieldTypeList: fieldType (P_COMMA fieldType)*;
 fieldType: fieldName ofTypePrefix? valueType;
 //Section 21.3 Names and identifiers
 objectName: identifier;
@@ -1851,7 +1817,7 @@ labelName: identifier;
 propertyName: identifier;
 fieldName: identifier;
 pathPatternName: identifier;
-parameterName: DOLLAR identifier;
+parameterName: P_DOLLAR identifier;
 elementVariable: identifier;
 pathVariable: identifier;
 subpathVariable: identifier;
@@ -1860,4 +1826,4 @@ bindingVariableName: identifier;
 identifier: regularIdentifier | delimitedIdentifier;
 regularIdentifier: IDENTIFIER;
 delimitedIdentifier: DELIMITED_IDENTIFIER;
-//Section 21.4 <token> and <separator>
+//Section 21.4 <token> and <separator> other
