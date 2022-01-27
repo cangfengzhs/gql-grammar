@@ -25,10 +25,11 @@ scripts/antlr4 *.g4
 ```
 编译
 ```
-cd target && javac *.java && cd ..
+cd target && javac -cp "../lib/antlr-4.9.3-complete.jar" *.java && cd ..
 ```
 利用antlr生成ps格式文件
 ```
+mkdir output
 scripts/grun GQL insertStatement -ps output/file.ps < example/insert/insert_node.gql
 ```
 ps文件生成jpg
