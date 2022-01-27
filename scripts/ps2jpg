@@ -1,0 +1,5 @@
+#!/bin/bash
+
+
+cmd="gs -sDEVICE=jpeg -dJPEGQ=100 -dNOPAUSE -dBATCH -dSAFER -r300 -sOutputFile=$2 $1"
+echo $cmd

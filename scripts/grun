@@ -1,0 +1,8 @@
+#!/bin/bash
+
+
+SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
+LIB_FOLDER=$(dirname $SHELL_FOLDER)"/lib"
+CLASSPATH=$(dirname $SHELL_FOLDER)"/lib/antlr-4.9.3-complete.jar":$(dirname $SHELL_FOLDER)"/target"
+echo $CLASSPATH
+java -cp $CLASSPATH org.antlr.v4.gui.TestRig $@
